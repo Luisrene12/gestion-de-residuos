@@ -6,7 +6,7 @@ import { Toast } from '../components/UI';
 
 const EMPTY = { id_residuo:'', id_normativa:'', cumple:'1', fecha_revision: new Date().toISOString().split('T')[0] };
 
-export default function Cumplimiento() {
+export default function Cumplimiento({ user }) {
   const [list, setList]         = useState([]);
   const [residuos, setResiduos]   = useState([]);
   const [normativas, setNormativas] = useState([]);
@@ -133,7 +133,14 @@ export default function Cumplimiento() {
                   <td>
                     <div style={{display:'flex',gap:6}}>
                       <button className="btn btn-sm" onClick={()=>openEdit(c)}>✏️</button>
-                      <button className="btn btn-sm btn-danger" onClick={()=>{setToDelete(c.id_cumplimiento);setConfirm(true);}}>🗑</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => {
+                        if (user?.rol === 'Supervisor') {
+                          showToast('No tienes permiso para eliminar registros', 'error');
+                          return;
+                        }
+                        setToDelete(c.id_cumplimiento);
+                        setConfirm(true);
+                      }}>🗑</button>
                     </div>
                   </td>
                 </tr>

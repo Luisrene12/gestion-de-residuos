@@ -2,12 +2,18 @@ import axios from 'axios';
 
 const API_URL = '/api';
 
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-        'x-user': 'admin' // Mock user for audit
-    }
+const getUser = () => {
+    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+};
+
+const api = axios.create({ baseURL: API_URL });
+
+// Interceptor para inyectar el header x-user en cada peticion
+api.interceptors.request.use(config => {
+    const user = getUser();
+    config.headers['Content-Type'] = 'application/json';
+    config.headers['x-user'] = user ? user.nombre : 'Sistema';
+    return config;
 });
 
 export const getResiduos = () => api.get('/residuos');

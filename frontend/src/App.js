@@ -8,11 +8,11 @@ import Cumplimiento from './pages/Cumplimiento';
 import Auditoria   from './pages/Auditoria';
 
 const PAGES = [
-  { id:'dashboard',    label:'Dashboard',         page:<Dashboard/> },
-  { id:'residuos',     label:'Residuos',           page:<Residuos/> },
-  { id:'historial',    label:'Historial Disposición', page:<Historial/> },
-  { id:'cumplimiento', label:'Cumplimiento',       page:<Cumplimiento/> },
-  { id:'auditoria',    label:'Auditoría',          page:<Auditoria/> },
+  { id:'dashboard',    label:'Dashboard',         page:(user) => <Dashboard/> },
+  { id:'residuos',     label:'Residuos',           page:(user) => <Residuos user={user}/> },
+  { id:'historial',    label:'Historial Disposición', page:(user) => <Historial user={user}/> },
+  { id:'cumplimiento', label:'Cumplimiento',       page:(user) => <Cumplimiento user={user}/> },
+  { id:'auditoria',    label:'Auditoría',          page:(user) => <Auditoria/> },
 ];
 
 const icons = {
@@ -117,7 +117,7 @@ export default function App() {
           </div>
         </header>
         <div className="page-content">
-          {current?.page}
+          {current?.page(user)}
         </div>
       </main>
     </div>

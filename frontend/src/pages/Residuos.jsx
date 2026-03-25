@@ -7,7 +7,7 @@ import { Toast } from '../components/UI';
 const EMPTY = { id_area:'', id_tipo:'', id_clasificacion:'', id_estado:'', id_responsable:'', cantidad:'', fecha: new Date().toISOString().split('T')[0] };
 const estadoColor = { 1:'green', 2:'blue', 3:'orange', 4:'teal', 5:'purple' };
 
-export default function Residuos() {
+export default function Residuos({ user }) {
   const [list, setList]         = useState([]);
   const [cats, setCats]         = useState({ areas:[], tipos:[], clasificaciones:[], estados:[], responsables:[] });
   const [loading, setLoading]   = useState(true);
@@ -53,7 +53,14 @@ export default function Residuos() {
     });
     setModal(true);
   };
-  const openDel  = (id) => { setToDelete(id); setConfirm(true); };
+  const openDel  = (id) => {
+    if (user?.rol === 'Supervisor') {
+      showToast('No tienes permiso para eliminar registros', 'error');
+      return;
+    }
+    setToDelete(id);
+    setConfirm(true);
+  };
 
   const handleSave = async () => {
     const payload = {

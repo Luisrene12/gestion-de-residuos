@@ -13,6 +13,10 @@
     "build": "react-scripts build"
   },
   "proxy": "http://localhost:5000",
+  "eslintConfig": {
+    "root": true,
+    "extends": ["react-app", "react-app/jest"]
+  },
   "browserslist": {
     "production": [
       ">0.2%",

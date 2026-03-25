@@ -187,8 +187,7 @@ GO
 IF NOT EXISTS (SELECT * FROM usuarios)
 BEGIN
     INSERT INTO usuarios (nombre, email, password, rol) VALUES 
-    ('Administrador Central', 'admin@empresa.com', 'admin123', 'Administrador'),
-    ('Supervisor HSE', 'hse@empresa.com', 'supervisor123', 'Supervisor'),
-    ('Operador General', 'operador@empresa.com', 'operador123', 'Operador');
+    ('Luis René García', 'lrene@empresa.com', 'luis123', 'Administrador'),
+    ('María Fernanda López', 'mlopez@empresa.com', 'maria123', 'Supervisor');
 END
 GO

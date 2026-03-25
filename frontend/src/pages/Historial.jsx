@@ -7,7 +7,7 @@ import { Toast } from '../components/UI';
 const EMPTY = { id_residuo:'', id_disposicion:'', id_transporte:'', fecha: new Date().toISOString().split('T')[0] };
 const dispColor = { 1:'teal', 2:'orange', 3:'blue', 4:'green' };
 
-export default function Historial() {
+export default function Historial({ user }) {
   const [list, setList]         = useState([]);
   const [residuos, setResiduos]   = useState([]);
   const [cats, setCats]         = useState({ disposiciones:[], transportes:[], empresas:[] });
@@ -103,7 +103,14 @@ export default function Historial() {
                   <td style={{color:'var(--text2)'}}>{h.empresa_nombre}</td>
                   <td style={{color:'var(--text2)'}}>{h.fecha}</td>
                   <td>
-                    <button className="btn btn-sm btn-danger" onClick={()=>{setToDelete(h.id_historial);setConfirm(true);}}>🗑</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => {
+                      if (user?.rol === 'Supervisor') {
+                        showToast('No tienes permiso para eliminar registros', 'error');
+                        return;
+                      }
+                      setToDelete(h.id_historial);
+                      setConfirm(true);
+                    }}>🗑</button>
                   </td>
                 </tr>
               ))}
