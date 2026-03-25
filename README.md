@@ -1,70 +1,84 @@
-# Getting Started with Create React App
+# Sistema de Gestión de Residuos
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Este proyecto es una aplicación Full-Stack para la gestión integral de residuos. Cuenta con un **Backend en Node.js (Express)** conectado a **SQL Server** y un **Frontend en React**.
 
-## Available Scripts
+## Requisitos Previos
 
-In the project directory, you can run:
+Asegúrate de tener instalados los siguientes programas antes de comenzar:
+- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/) (Versión 16 o superior recomendada)
+- **SQL Server** (Developer o Express) y SQL Server Management Studio (SSMS) o Azure Data Studio.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Guía de Instalación y Ejecución
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Sigue estos pasos en orden para levantar el proyecto en tu máquina local.
 
-### `npm test`
+### 1. Clonar el repositorio
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Abre tu terminal y ejecuta el siguiente comando para descargar el código:
 
-### `npm run build`
+```bash
+git clone https://github.com/Luisrene12/gestion-de-residuos.git
+cd gestion-de-residuos
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 2. Configuración de la Base de Datos (SQL Server)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Abre **SQL Server Management Studio (SSMS)** y conéctate a tu servidor local.
+2. Crea una nueva base de datos llamada `GestionResiduosPro`. Puedes hacerlo visualmente o ejecutando el siguiente comando:
+   ```sql
+   CREATE DATABASE GestionResiduosPro;
+   GO
+   ```
+3. Abre el archivo `backend/schema.sql` que viene en el proyecto, copia todo su contenido y ejecútalo sobre la base de datos `GestionResiduosPro` recién creada para generar las tablas y vistas.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 3. Configuración y Ejecución del Backend
 
-### `npm run eject`
+El backend es nuestra API que se conecta a la base de datos. Se ejecutará en el puerto 5000.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+1. Abre una nueva ventana de terminal y navega a la carpeta del backend:
+   ```bash
+   cd backend
+   ```
+2. Instala las dependencias necesarias de Node:
+   ```bash
+   npm install
+   ```
+3. **Paso Crucial:** Crea un archivo llamado `.env` dentro de la carpeta `backend` (al mismo nivel que `package.json`). Agrega el siguiente contenido (ajusta el nombre de tu servidor SQL si es diferente a `localhost`):
+   ```env
+   PORT=5000
+   DB_SERVER=localhost
+   DB_NAME=GestionResiduosPro
+   ```
+   *(Nota: La aplicación está configurada para autenticarse en SQL Server usando Windows Authentication. Asegúrate de que tu usuario de Windows tenga acceso a la base de datos).*
+4. Inicia el servidor:
+   ```bash
+   npm start
+   ```
+   Si todo está correcto, verás un mensaje en consola diciendo: `Connected to SQL Server via Windows Authentication.` y `Server running on port 5000`.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 4. Configuración y Ejecución del Frontend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+El frontend es la interfaz de usuario en React. Se ejecutará en el puerto 3000.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1. Abre otra ventana de terminal (no cierres la del backend) y navega a la carpeta del frontend:
+   ```bash
+   cd frontend
+   ```
+2. Instala las dependencias necesarias:
+   ```bash
+   npm install
+   ```
+3. Inicia la aplicación:
+   ```bash
+   npm start
+   ```
+   Se abrirá una pestaña automáticamente en tu navegador en `http://localhost:3000`. Desde ahí podrás probar el sistema conectado a la base de datos.
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Estructura del Proyecto
+* `/backend`: Código del servidor (Express.js), conexión a base de datos (mssql), queries y variables de entorno.
+* `/frontend`: Código de la interfaz de usuario de React (Vistas, componentes y diseño).
