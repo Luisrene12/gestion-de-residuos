@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './index.css';
+import Login from './pages/Login';
 import Dashboard   from './pages/Dashboard';
 import Residuos    from './pages/Residuos';
 import Historial   from './pages/Historial';
@@ -32,6 +33,29 @@ const pageTitles = {
 
 export default function App() {
   const [active, setActive] = useState('dashboard');
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   const current = PAGES.find(p => p.id === active);
 
   return (
@@ -68,11 +92,16 @@ export default function App() {
 
         <div className="sidebar-footer">
           <div className="user-pill">
-            <div className="avatar">AD</div>
+            <div className="avatar">{user.nombre.substring(0, 2).toUpperCase()}</div>
             <div className="user-pill-info">
-              <p>Administrador</p>
-              <span>admin@planta.bo</span>
+              <p>{user.nombre}</p>
+              <span>{user.email}</span>
             </div>
+            <button className="logout-btn" onClick={handleLogout} title="Cerrar Sesión">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} width={18} height={18}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+            </button>
           </div>
         </div>
       </aside>

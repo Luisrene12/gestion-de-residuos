@@ -22,6 +22,24 @@ const audit = (tabla, accion) => async (req, res, next) => {
     next();
 };
 
+// --- AUTENTICACION ---
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await get(
+            'SELECT id_usuario, nombre, email, rol FROM usuarios WHERE email = ? AND password = ? AND estado = 1',
+            [email, password]
+        );
+        if (user) {
+            res.json({ success: true, user });
+        } else {
+            res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- RUTAS DE RESIDUOS ---
 
 app.get('/api/residuos', async (req, res) => {

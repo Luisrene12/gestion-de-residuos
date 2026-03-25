@@ -106,6 +106,19 @@ CREATE TABLE cumplimiento (
 );
 GO
 
+-- Usuarios del Sistema
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='usuarios')
+CREATE TABLE usuarios (
+    id_usuario INT IDENTITY(1,1) PRIMARY KEY,
+    nombre NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) UNIQUE NOT NULL,
+    password NVARCHAR(255) NOT NULL,
+    rol NVARCHAR(50) DEFAULT 'Usuario',
+    estado BIT DEFAULT 1,
+    fecha_creacion DATETIME DEFAULT GETDATE()
+);
+GO
+
 -- Auditoría
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='auditoria')
 CREATE TABLE auditoria (
@@ -167,5 +180,15 @@ BEGIN
     (5, 5, 3, 2, 1, 5.20,   '2025-03-15'),
     (2, 1, 2, 5, 3, 67.80,  '2025-03-18'),
     (3, 4, 3, 1, 2, 30.00,  '2025-03-20');
+END
+GO
+
+-- Inicialización de Usuarios (Contraseñas en texto plano solo para probar, en prod usar bcrypt)
+IF NOT EXISTS (SELECT * FROM usuarios)
+BEGIN
+    INSERT INTO usuarios (nombre, email, password, rol) VALUES 
+    ('Administrador Central', 'admin@empresa.com', 'admin123', 'Administrador'),
+    ('Supervisor HSE', 'hse@empresa.com', 'supervisor123', 'Supervisor'),
+    ('Operador General', 'operador@empresa.com', 'operador123', 'Operador');
 END
 GO
