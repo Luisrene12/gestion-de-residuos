@@ -1,29 +1,75 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const { query, run, get } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Configuración de middlewares profesionales
 app.use(cors());
+app.use(morgan('dev')); // Logger de peticiones
 app.use(express.json());
 
-// Middleware para Auditoría Simple
+// Utilería para respuestas estandarizadas
+const sendResponse = (res, data, status = 200) => {
+    res.status(status).json({
+        success: true,
+        data,
+        timestamp: new Date().toISOString()
+    });
+};
+
+// Middleware para Auditoría Profesional
 const audit = (tabla, accion) => async (req, res, next) => {
-    const originalSend = res.send;
-    res.send = function (data) {
+    let detalles = null;
+    
+    // Capturar estado previo ANTES de que se ejecute el DELETE/UPDATE
+    try {
+        if (accion === 'DELETE' || accion === 'UPDATE') {
+            const id = req.params.id;
+            if (id) {
+                const pks = { 
+                    'Residuos': 'id_residuo', 
+                    'HistorialDisposicion': 'id_historial', 
+                    'Cumplimiento': 'id_cumplimiento' 
+                };
+                const pk = pks[tabla] || 'id';
+                const originalData = await get(`SELECT * FROM ${tabla} WHERE ${pk} = ?`, [id]);
+                if (originalData) {
+                    detalles = JSON.stringify({ antes: originalData });
+                }
+            }
+        } else if (accion === 'INSERT') {
+            detalles = JSON.stringify({ nuevo: req.body });
+        }
+    } catch (err) {
+        console.error(`Audit Before Error (${tabla}/${accion}):`, err.message);
+    }
+
+    // Interceptar res.json para registrar la auditoría sólo si la respuesta es exitosa (2xx)
+    const originalJson = res.json;
+    res.json = function (obj) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
             const usuario = req.headers['x-user'] || 'admin_user';
-            run('INSERT INTO Auditoria (tabla, accion, usuario) VALUES (?, ?, ?)', [tabla, accion, usuario])
-                .catch(err => console.error('Audit error:', err));
+            let finalDetalles = detalles;
+            
+            if (accion === 'UPDATE' && req.body) {
+                const antes = detalles ? JSON.parse(detalles).antes : null;
+                finalDetalles = JSON.stringify({ antes, despues: req.body });
+            }
+
+            run('INSERT INTO Auditoria (tabla, accion, usuario, detalles) VALUES (?, ?, ?, ?)', 
+                [tabla, accion, usuario, finalDetalles])
+                .catch(err => console.error('Audit Write Error:', err.message));
         }
-        originalSend.apply(res, arguments);
+        return originalJson.apply(res, arguments);
     };
     next();
 };
 
 // --- AUTENTICACION ---
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async (req, res, next) => {
     const { email, password } = req.body;
     try {
         const user = await get(
@@ -31,18 +77,19 @@ app.post('/api/login', async (req, res) => {
             [email, password]
         );
         if (user) {
-            res.json({ success: true, user });
+            sendResponse(res, { user });
         } else {
-            res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+            const err = new Error('Credenciales inválidas');
+            err.status = 401;
+            throw err;
         }
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // --- RUTAS DE RESIDUOS ---
-
-app.get('/api/residuos', async (req, res) => {
+app.get('/api/residuos', async (req, res, next) => {
     try {
         const rows = await query(`
             SELECT r.*, a.nombre as area_nombre, t.nombre as tipo_nombre, t.peligroso, 
@@ -56,50 +103,49 @@ app.get('/api/residuos', async (req, res) => {
             LEFT JOIN Responsables rs ON r.id_responsable = rs.id_responsable
             ORDER BY r.fecha DESC
         `);
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.post('/api/residuos', audit('Residuos', 'INSERT'), async (req, res) => {
+app.post('/api/residuos', audit('Residuos', 'INSERT'), async (req, res, next) => {
     const { id_area, id_tipo, id_clasificacion, id_estado, id_responsable, cantidad, fecha } = req.body;
     try {
         const result = await run(
             'INSERT INTO Residuos (id_area, id_tipo, id_clasificacion, id_estado, id_responsable, cantidad, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [id_area, id_tipo, id_clasificacion, id_estado, id_responsable, cantidad, fecha]
         );
-        res.status(201).json({ id: result.id });
+        sendResponse(res, { id: result.id }, 201);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.put('/api/residuos/:id', audit('Residuos', 'UPDATE'), async (req, res) => {
+app.put('/api/residuos/:id', audit('Residuos', 'UPDATE'), async (req, res, next) => {
     const { id_area, id_tipo, id_clasificacion, id_estado, id_responsable, cantidad, fecha } = req.body;
     try {
         await run(
             'UPDATE Residuos SET id_area=?, id_tipo=?, id_clasificacion=?, id_estado=?, id_responsable=?, cantidad=?, fecha=? WHERE id_residuo=?',
             [id_area, id_tipo, id_clasificacion, id_estado, id_responsable, cantidad, fecha, req.params.id]
         );
-        res.json({ success: true });
+        sendResponse(res, { success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.delete('/api/residuos/:id', audit('Residuos', 'DELETE'), async (req, res) => {
+app.delete('/api/residuos/:id', audit('Residuos', 'DELETE'), async (req, res, next) => {
     try {
         await run('DELETE FROM Residuos WHERE id_residuo=?', [req.params.id]);
-        res.json({ success: true });
+        sendResponse(res, { success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // --- RUTAS DE HISTORIAL DISPOSICION ---
-
-app.get('/api/historial', async (req, res) => {
+app.get('/api/historial', async (req, res, next) => {
     try {
         const rows = await query(`
             SELECT h.*, r.cantidad, r.fecha as fecha_residuo, d.tipo as disposicion_nombre, 
@@ -111,37 +157,36 @@ app.get('/api/historial', async (req, res) => {
             JOIN EmpresasGestoras e ON t.id_empresa = e.id_empresa
             ORDER BY h.fecha DESC
         `);
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.post('/api/historial', audit('HistorialDisposicion', 'INSERT'), async (req, res) => {
+app.post('/api/historial', audit('HistorialDisposicion', 'INSERT'), async (req, res, next) => {
     const { id_residuo, id_disposicion, id_transporte, fecha } = req.body;
     try {
         const result = await run(
             'INSERT INTO HistorialDisposicion (id_residuo, id_disposicion, id_transporte, fecha) VALUES (?, ?, ?, ?)',
             [id_residuo, id_disposicion, id_transporte, fecha]
         );
-        res.status(201).json({ id: result.id });
+        sendResponse(res, { id: result.id }, 201);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.delete('/api/historial/:id', audit('HistorialDisposicion', 'DELETE'), async (req, res) => {
+app.delete('/api/historial/:id', audit('HistorialDisposicion', 'DELETE'), async (req, res, next) => {
     try {
         await run('DELETE FROM HistorialDisposicion WHERE id_historial=?', [req.params.id]);
-        res.json({ success: true });
+        sendResponse(res, { success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // --- RUTAS DE CUMPLIMIENTO ---
-
-app.get('/api/cumplimiento', async (req, res) => {
+app.get('/api/cumplimiento', async (req, res, next) => {
     try {
         const rows = await query(`
             SELECT c.*, r.cantidad, r.fecha as fecha_residuo, n.nombre as normativa_nombre
@@ -150,137 +195,149 @@ app.get('/api/cumplimiento', async (req, res) => {
             JOIN Normativas n ON c.id_normativa = n.id_normativa
             ORDER BY c.fecha_revision DESC
         `);
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.post('/api/cumplimiento', audit('Cumplimiento', 'INSERT'), async (req, res) => {
+app.post('/api/cumplimiento', audit('Cumplimiento', 'INSERT'), async (req, res, next) => {
     const { id_residuo, id_normativa, cumple, fecha_revision } = req.body;
     try {
         const result = await run(
             'INSERT INTO Cumplimiento (id_residuo, id_normativa, cumple, fecha_revision) VALUES (?, ?, ?, ?)',
             [id_residuo, id_normativa, cumple ? 1 : 0, fecha_revision]
         );
-        res.status(201).json({ id: result.id });
+        sendResponse(res, { id: result.id }, 201);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.put('/api/cumplimiento/:id', audit('Cumplimiento', 'UPDATE'), async (req, res) => {
+app.put('/api/cumplimiento/:id', audit('Cumplimiento', 'UPDATE'), async (req, res, next) => {
     const { id_residuo, id_normativa, cumple, fecha_revision } = req.body;
     try {
         await run(
             'UPDATE Cumplimiento SET id_residuo=?, id_normativa=?, cumple=?, fecha_revision=? WHERE id_cumplimiento=?',
             [id_residuo, id_normativa, cumple ? 1 : 0, fecha_revision, req.params.id]
         );
-        res.json({ success: true });
+        sendResponse(res, { success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.delete('/api/cumplimiento/:id', audit('Cumplimiento', 'DELETE'), async (req, res) => {
+app.delete('/api/cumplimiento/:id', audit('Cumplimiento', 'DELETE'), async (req, res, next) => {
     try {
         await run('DELETE FROM Cumplimiento WHERE id_cumplimiento=?', [req.params.id]);
-        res.json({ success: true });
+        sendResponse(res, { success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // --- CATALOGOS ---
-
-app.get('/api/catalogos', async (req, res) => {
+app.get('/api/catalogos', async (req, res, next) => {
     try {
-        const areas = await query('SELECT * FROM Areas');
-        const responsables = await query('SELECT * FROM Responsables');
-        const tipos = await query('SELECT * FROM TiposResiduo');
-        const clasificaciones = await query('SELECT * FROM ClasificacionResiduo');
-        const estados = await query('SELECT * FROM EstadosResiduo');
-        const disposiciones = await query('SELECT * FROM DisposicionFinal');
-        const empresas = await query('SELECT * FROM EmpresasGestoras');
-        const transportes = await query('SELECT * FROM Transporte');
-        const normativas = await query('SELECT * FROM Normativas');
+        const [areas, responsables, tipos, clasificaciones, estados, disposiciones, empresas, transportes, normativas] = await Promise.all([
+            query('SELECT * FROM Areas'),
+            query('SELECT * FROM Responsables'),
+            query('SELECT * FROM TiposResiduo'),
+            query('SELECT * FROM ClasificacionResiduo'),
+            query('SELECT * FROM EstadosResiduo'),
+            query('SELECT * FROM DisposicionFinal'),
+            query('SELECT * FROM EmpresasGestoras'),
+            query('SELECT * FROM Transporte'),
+            query('SELECT * FROM Normativas')
+        ]);
 
-        res.json({
+        sendResponse(res, {
             areas, responsables, tipos, clasificaciones, estados, disposiciones, empresas, transportes, normativas
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // --- REPORTES Y VISTAS ---
-
-app.get('/api/reportes/tipo', async (req, res) => {
+app.get('/api/reportes/tipo', async (req, res, next) => {
     try {
         const rows = await query('SELECT tipo, total as total_kg FROM Vista_Residuos_Tipo');
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/reportes/periodo', async (req, res) => {
+app.get('/api/reportes/periodo', async (req, res, next) => {
     try {
-        // En caso de que se haya creado Vista_Residuos_Periodo (el usuario no la mandó, así que lo hacemos directo)
         const rows = await query(`
             SELECT FORMAT(fecha, 'yyyy-MM') AS periodo, SUM(cantidad) AS total_kg
             FROM Residuos
             GROUP BY FORMAT(fecha, 'yyyy-MM')
         `);
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/reportes/area', async (req, res) => {
+app.get('/api/reportes/area', async (req, res, next) => {
     try {
         const rows = await query('SELECT area, total as total_kg FROM Vista_Residuos_Area');
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/reportes/cumplimiento', async (req, res) => {
+app.get('/api/reportes/cumplimiento', async (req, res, next) => {
     try {
         const rows = await query('SELECT * FROM Vista_Cumplimiento');
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/kpis', async (req, res) => {
+app.get('/api/kpis', async (req, res, next) => {
     try {
-        const totalKg = await get('SELECT SUM(cantidad) as total FROM Residuos');
-        const totalRegistros = await get('SELECT COUNT(*) as total FROM Residuos');
-        const peligrosos = await get('SELECT COUNT(*) as total FROM Residuos r JOIN TiposResiduo t ON r.id_tipo = t.id_tipo WHERE t.peligroso = 1');
+        const [totalKg, totalRegistros, peligrosos] = await Promise.all([
+            get('SELECT SUM(cantidad) as total FROM Residuos'),
+            get('SELECT COUNT(*) as total FROM Residuos'),
+            get('SELECT COUNT(*) as total FROM Residuos r JOIN TiposResiduo t ON r.id_tipo = t.id_tipo WHERE t.peligroso = 1')
+        ]);
         
-        res.json({
+        sendResponse(res, {
             totalKg: totalKg ? totalKg.total : 0,
             totalRegistros: totalRegistros ? totalRegistros.total : 0,
             peligrosos: peligrosos ? peligrosos.total : 0
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/auditoria', async (req, res) => {
+app.get('/api/auditoria', async (req, res, next) => {
     try {
         const rows = await query('SELECT TOP 50 * FROM Auditoria ORDER BY fecha DESC');
-        res.json(rows);
+        sendResponse(res, rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
+});
+
+// Middleware Centralizado de Manejo de Errores
+app.use((err, req, res, next) => {
+    console.error(`[ERROR] ${err.message}`);
+    const status = err.status || 500;
+    res.status(status).json({
+        success: false,
+        error: err.message || 'Internal Server Error',
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Professional Server running on port ${PORT}`);
 });

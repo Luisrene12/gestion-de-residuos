@@ -38,16 +38,17 @@ export function KpiCard({ label, value, icon, color='accent' }) {
   const map = {
     accent:  { c:'var(--accent)',  d:'var(--accent-dim)'  },
     danger:  { c:'var(--danger)',  d:'var(--danger-dim)'  },
-    info:    { c:'var(--info)',    d:'var(--info-dim)'    },
-    purple:  { c:'var(--purple)',  d:'var(--purple-dim)'  },
-    orange:  { c:'var(--orange)',  d:'var(--orange-dim)'  },
-    teal:    { c:'var(--teal)',    d:'var(--teal-dim)'    },
-    warning: { c:'var(--warning)', d:'var(--warning-dim)' },
+    info:    { c:'var(--info)',    d:'var(--primary-dim)' },
+    purple:  { c:'var(--primary)',  d:'rgba(168, 85, 247, 0.1)' },
+    orange:  { c:'var(--warning)', d:'var(--warning-dim)' },
+    teal:    { c:'var(--accent-light)', d:'rgba(20, 184, 166, 0.1)' },
   };
   const { c, d } = map[color]||map.accent;
   return (
     <div className="kpi-card" style={{'--kpi-color':c,'--kpi-dim':d}}>
-      <div className="kpi-icon">{icon}</div>
+      <div className="kpi-icon-wrap" style={{background:d, color:c}}>
+        {icon}
+      </div>
       <div className="kpi-val">{value}</div>
       <div className="kpi-label">{label}</div>
     </div>
@@ -80,9 +81,17 @@ export function SearchBar({ value, onChange, placeholder='Buscar...' }) {
 
 export function RowActions({ onEdit, onDelete }) {
   return (
-    <div style={{ display:'flex', gap:6 }}>
-      <button className="btn btn-sm" onClick={onEdit}>✏️ Editar</button>
-      <button className="btn btn-sm btn-danger" onClick={onDelete}>🗑 Eliminar</button>
+    <div style={{ display:'flex', gap:8 }}>
+      <button className="btn btn-sm" 
+              style={{background:'rgba(255,255,255,0.05)', border:'1px solid var(--border)', padding:'0 12px'}} 
+              onClick={onEdit}>
+        ✏️ Editar
+      </button>
+      <button className="btn btn-sm" 
+              style={{background:'var(--danger-dim)', color:'var(--danger)', border:'1px solid rgba(239,68,68,0.2)', padding:'0 12px'}} 
+              onClick={onDelete}>
+        🗑 Borrar
+      </button>
     </div>
   );
 }

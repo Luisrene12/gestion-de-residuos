@@ -16,6 +16,17 @@ api.interceptors.request.use(config => {
     return config;
 });
 
+// Interceptor para desempaquetar la respuesta estandarizada { success, data }
+api.interceptors.response.use(
+    response => {
+        if (response.data && response.data.success) {
+            return { ...response, data: response.data.data };
+        }
+        return response;
+    },
+    error => Promise.reject(error)
+);
+
 export const getResiduos = () => api.get('/residuos');
 export const createResiduo = (data) => api.post('/residuos', data);
 export const updateResiduo = (id, data) => api.put(`/residuos/${id}`, data);

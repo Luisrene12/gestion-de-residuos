@@ -126,6 +126,7 @@ CREATE TABLE auditoria (
     tabla NVARCHAR(255),
     accion NVARCHAR(255),
     usuario NVARCHAR(255),
+    detalles NVARCHAR(MAX),
     fecha DATETIME DEFAULT GETDATE()
 );
 GO

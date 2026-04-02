@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -10,28 +10,34 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('http://localhost:5000/api/login', { email, password });
-      if (res.data.success) {
+      const res = await api.post('/login', { email, password });
+      // El interceptor ya desempaquetó 'data', así que res.data es { user }
+      if (res.data.user) {
         onLogin(res.data.user);
       }
     } catch (err) {
       if (err.response && err.response.status === 401) {
         setError('Correo o contraseña incorrectos');
       } else {
-        setError('Error de conexión con el servidor (' + err.message + ')');
+        const msg = err.response?.data?.error || err.message;
+        setError('Error: ' + msg);
       }
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="logo-mark" style={{ margin: '0 auto 16px auto', width: 48, height: 48 }}>
-            <svg viewBox="0 0 24 24" style={{ width: 28, height: 28 }}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <div className="login-page">
+      <div className="login-decor"></div>
+      <div className="login-glass">
+        <div style={{textAlign:'center', marginBottom:40}}>
+          <div className="logo-icon" style={{width:64, height:64, marginBottom:20}}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" 
+                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
           </div>
-          <h2 style={{ margin: 0, color: 'var(--text)' }}>Gestion Residuos</h2>
-          <p style={{ margin: '8px 0 24px 0', color: 'var(--text2)', fontSize: 14 }}>Inicia sesión en tu cuenta industrial</p>
+          <h2 className="font-heading" style={{fontSize:28, marginBottom:8}}>GestionResiduos</h2>
+          <p style={{color:'var(--text-muted)', fontSize:14}}>Portal de Gestión Industrial Pro</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           {error && <div className="login-error">{error}</div>}
