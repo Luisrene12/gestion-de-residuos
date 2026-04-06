@@ -95,7 +95,7 @@ export default function Dashboard() {
     return () => { cTipo.current?.destroy(); cArea.current?.destroy(); cCumpl.current?.destroy(); };
   }, [loading, data]);
 
-  if (loading) return <div className="p-8 text-center text-white">Iniciando Dashboard...</div>;
+  if (loading) return <div className="p-8 text-center text-white">Bienvenido al Iniciando Dashboard...</div>;
 
   return (
     <div>
@@ -168,4 +168,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+}
